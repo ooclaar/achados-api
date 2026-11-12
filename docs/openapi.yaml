@@ -7,7 +7,7 @@ info:
     atribuir um responsável e resolver. O prazo de tratamento é calculado pela severidade.
   contact:
     name: Mantenedores do projeto
-    url: https://github.com/SEU_USUARIO/achados-api
+    url: https://github.com/ooclaar/achados-api
 servers:
   - url: http://localhost:3000
     description: Ambiente local (docker compose up)

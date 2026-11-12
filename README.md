@@ -13,7 +13,7 @@ Regras de negócio:
 - Achado resolvido não pode ser reatribuído.
 - `vencido` é verdadeiro quando o prazo passou e o achado não foi resolvido.
 
-CI: <!-- TODO: cole aqui o link da execução verde do GitHub Actions -->
+CI: [execuções do workflow no GitHub Actions](https://github.com/ooclaar/achados-api/actions/workflows/ci.yml)
 
 ## Como subir (1 comando)
 
