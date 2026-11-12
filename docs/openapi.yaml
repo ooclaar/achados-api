@@ -1,0 +1,319 @@
+openapi: 3.1.0
+info:
+  title: Achados API
+  version: 1.0.0
+  description: >-
+    API de gestão de achados de segurança. Fluxo principal: registrar um achado,
+    atribuir um responsável e resolver. O prazo de tratamento é calculado pela severidade.
+  contact:
+    name: Mantenedores do projeto
+    url: https://github.com/SEU_USUARIO/achados-api
+servers:
+  - url: http://localhost:3000
+    description: Ambiente local (docker compose up)
+tags:
+  - name: Achados
+    description: Ciclo de vida do achado
+  - name: Operação
+    description: Saúde e métricas
+paths:
+  /achados:
+    post:
+      operationId: registrarAchado
+      summary: Registra um achado
+      description: Cria o achado com status ABERTO e calcula o prazo pela severidade.
+      tags: [Achados]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NovoAchado'
+            examples:
+              critico:
+                value:
+                  titulo: Credencial exposta no repositório
+                  descricao: Chave de API em texto puro no histórico do git
+                  severidade: CRITICA
+      responses:
+        '201':
+          description: Achado registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Achado'
+        '400':
+          $ref: '#/components/responses/DadosInvalidos'
+    get:
+      operationId: listarAchados
+      summary: Lista achados
+      description: Devolve no máximo 100 achados, dos mais recentes para os mais antigos.
+      tags: [Achados]
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filtra pelo status
+          schema:
+            $ref: '#/components/schemas/Status'
+      responses:
+        '200':
+          description: Lista de achados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Achado'
+        '400':
+          $ref: '#/components/responses/DadosInvalidos'
+  /achados/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdDoAchado'
+    get:
+      operationId: buscarAchado
+      summary: Busca um achado pelo id
+      description: Devolve o achado com o campo calculado `vencido`.
+      tags: [Achados]
+      responses:
+        '200':
+          description: Achado encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Achado'
+        '400':
+          $ref: '#/components/responses/DadosInvalidos'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+  /achados/{id}/atribuicao:
+    parameters:
+      - $ref: '#/components/parameters/IdDoAchado'
+    post:
+      operationId: atribuirAchado
+      summary: Atribui um responsável
+      description: >-
+        Define ou troca o responsável e coloca o achado EM_TRATAMENTO.
+        Achado RESOLVIDO não pode ser atribuído.
+      tags: [Achados]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Atribuicao'
+      responses:
+        '200':
+          description: Achado atribuído
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Achado'
+        '400':
+          $ref: '#/components/responses/DadosInvalidos'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '409':
+          $ref: '#/components/responses/TransicaoInvalida'
+  /achados/{id}/resolucao:
+    parameters:
+      - $ref: '#/components/parameters/IdDoAchado'
+    post:
+      operationId: resolverAchado
+      summary: Resolve um achado
+      description: Só é permitido para achados EM_TRATAMENTO. Registra a data de resolução.
+      tags: [Achados]
+      responses:
+        '200':
+          description: Achado resolvido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Achado'
+        '400':
+          $ref: '#/components/responses/DadosInvalidos'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '409':
+          $ref: '#/components/responses/TransicaoInvalida'
+  /health:
+    get:
+      operationId: verificarSaude
+      summary: Verifica a saúde da API
+      description: Responde 200 quando a API consegue consultar o banco.
+      tags: [Operação]
+      responses:
+        '200':
+          description: API e banco no ar
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+        '503':
+          description: Banco indisponível
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [indisponivel]
+  /metrics:
+    get:
+      operationId: exporMetricas
+      summary: Métricas no formato Prometheus
+      description: Inclui o histograma `http_request_duration_seconds` por método, rota e status.
+      tags: [Operação]
+      responses:
+        '200':
+          description: Métricas em texto
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  parameters:
+    IdDoAchado:
+      name: id
+      in: path
+      required: true
+      description: Identificador do achado
+      schema:
+        type: string
+        format: uuid
+  responses:
+    DadosInvalidos:
+      description: Dados de entrada inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          examples:
+            severidade:
+              value:
+                erro: DADOS_INVALIDOS
+                mensagem: body/severidade must be equal to one of the allowed values
+    NaoEncontrado:
+      description: Achado não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          examples:
+            inexistente:
+              value:
+                erro: ACHADO_NAO_ENCONTRADO
+                mensagem: Achado 22222222-2222-4222-8222-222222222222 não encontrado
+    TransicaoInvalida:
+      description: O status atual do achado não permite a operação
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          examples:
+            aberto:
+              value:
+                erro: TRANSICAO_INVALIDA
+                mensagem: 'Só é possível resolver um achado EM_TRATAMENTO (status atual: ABERTO)'
+  schemas:
+    Severidade:
+      type: string
+      enum: [CRITICA, ALTA, MEDIA, BAIXA]
+      description: 'Define o prazo: CRITICA 7 dias, ALTA 30, MEDIA 90, BAIXA 180.'
+    Status:
+      type: string
+      enum: [ABERTO, EM_TRATAMENTO, RESOLVIDO]
+    NovoAchado:
+      type: object
+      required: [titulo, severidade]
+      additionalProperties: false
+      properties:
+        titulo:
+          type: string
+          minLength: 3
+          maxLength: 200
+        descricao:
+          type: string
+          maxLength: 5000
+        severidade:
+          $ref: '#/components/schemas/Severidade'
+    Atribuicao:
+      type: object
+      required: [responsavel]
+      additionalProperties: false
+      properties:
+        responsavel:
+          type: string
+          minLength: 1
+          maxLength: 100
+    Achado:
+      type: object
+      required:
+        - id
+        - titulo
+        - descricao
+        - severidade
+        - status
+        - responsavel
+        - criadoEm
+        - prazo
+        - resolvidoEm
+        - vencido
+      properties:
+        id:
+          type: string
+          format: uuid
+        titulo:
+          type: string
+        descricao:
+          type: string
+        severidade:
+          $ref: '#/components/schemas/Severidade'
+        status:
+          $ref: '#/components/schemas/Status'
+        responsavel:
+          type: [string, 'null']
+        criadoEm:
+          type: string
+          format: date-time
+        prazo:
+          type: string
+          format: date-time
+        resolvidoEm:
+          type: [string, 'null']
+          format: date-time
+        vencido:
+          type: boolean
+          description: Passou do prazo e ainda não foi resolvido
+      examples:
+        - id: 5b1f6c1e-8d5e-4c0a-9a5b-2f7e1d3c4b6a
+          titulo: Credencial exposta no repositório
+          descricao: Chave de API em texto puro no histórico do git
+          severidade: CRITICA
+          status: EM_TRATAMENTO
+          responsavel: ana
+          criadoEm: '2026-11-10T12:00:00.000Z'
+          prazo: '2026-11-17T12:00:00.000Z'
+          resolvidoEm: null
+          vencido: false
+    Erro:
+      type: object
+      required: [erro, mensagem]
+      properties:
+        erro:
+          type: string
+          enum:
+            - DADOS_INVALIDOS
+            - REQUISICAO_INVALIDA
+            - ACHADO_NAO_ENCONTRADO
+            - TRANSICAO_INVALIDA
+            - ERRO_INTERNO
+        mensagem:
+          type: string
