@@ -1,0 +1,2 @@
+# Mantém LF em todos os sistemas: os arquivos também rodam dentro de contêineres Linux.
+* text=auto eol=lf
