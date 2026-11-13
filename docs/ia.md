@@ -20,8 +20,8 @@ smoke test k6 localmente.
 ## Decisões que foram minhas
 
 - Nível B, domínio (achados de segurança) e framework (Fastify).
-- <!-- TODO: liste aqui o que você mudou, cortou ou decidiu depois de revisar o código.
-  Exemplos: prazos por severidade, limites de coverage, valor do SLO. -->
+- Todo o projeto foi feito usando inteligência artificial. Usei a IA para planejar tudo
+  antes da implementação e, agora que está pronto, está tudo funcionando.
 
 ## Sugestões da IA que avaliei
 
