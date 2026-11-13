@@ -2,7 +2,7 @@
 
 - **Status:** aceita
 - **Data:** 2026-11-10
-- **Decisores:** <seu nome>
+- **Decisores:** Ramon Alonso Costa
 
 ## Contexto e problema
 
